@@ -12,15 +12,29 @@ Parameters:
     Type: String
     Default: prd
     AllowedValues: [dev, prd]
+  # Los tres van vacíos mientras no haya dominio propio. En ese modo
+  # CloudFront sirve el sitio en su propio nombre (dxxxx.cloudfront.net) con el
+  # certificado que trae AWS: HTTPS válido para el visitante, sin comprar nada
+  # y sin renovaciones. Ver "Sin dominio todavía" en el README del backend.
   SiteDomainName:
     Type: String
-    Description: Dominio público del sitio, por ejemplo www.midominio.com
+    Default: ''
+    Description: Dominio público del sitio, por ejemplo www.midominio.com. Vacío = se usa el dominio de CloudFront
   OriginDomainName:
     Type: String
-    Description: Nombre DNS del ALB con certificado propio, por ejemplo origin.midominio.com
+    Default: ''
+    Description: Nombre DNS del ALB con certificado propio, por ejemplo origin.midominio.com. Vacío = se usa el DNS del ALB directo
   CertificateArn:
     Type: String
-    Description: ARN del certificado ACM de SiteDomainName, en us-east-1
+    Default: ''
+    Description: ARN del certificado ACM de SiteDomainName, en us-east-1. Vacío = certificado por defecto de CloudFront
+
+Conditions:
+  ConDominioPropio: !Not [!Equals [!Ref SiteDomainName, '']]
+  # Si hay un nombre de origen propio es porque el ALB tiene certificado, así
+  # que CloudFront le habla HTTPS. Si no, le habla HTTP al DNS del ALB -- ver
+  # el comentario del origen `api` más abajo.
+  ConOrigenPropio: !Not [!Equals [!Ref OriginDomainName, '']]
 
 Resources:
   SiteBucket:
@@ -107,29 +121,57 @@ Resources:
 
   Distribution:
     Type: AWS::CloudFront::Distribution
+    # W1030: cfn-lint resuelve Ref CertificateArn con su default ('') y se
+    # queja de que no tiene forma de ARN de ACM. Es un falso positivo: ese Ref
+    # solo se evalúa dentro del !If de ConDominioPropio, o sea cuando el
+    # parámetro viene cargado. Sin esto el warning hace fallar el paso de
+    # cfn-lint del CI (cfn-lint sale con 4 ante un warning, no con 0).
+    Metadata:
+      cfn-lint:
+        config:
+          ignore_checks: [W1030]
     Properties:
       DistributionConfig:
         Enabled: true
         Comment: !Sub '${Project}-${Environment}'
-        Aliases: [!Ref SiteDomainName]
+        Aliases: !If [ConDominioPropio, [!Ref SiteDomainName], !Ref 'AWS::NoValue']
         HttpVersion: http2and3
         PriceClass: PriceClass_All
         DefaultRootObject: index.html
-        ViewerCertificate:
-          AcmCertificateArn: !Ref CertificateArn
-          SslSupportMethod: sni-only
-          MinimumProtocolVersion: TLSv1.2_2021
+        ViewerCertificate: !If
+          - ConDominioPropio
+          - AcmCertificateArn: !Ref CertificateArn
+            SslSupportMethod: sni-only
+            MinimumProtocolVersion: TLSv1.2_2021
+          # El certificado de *.cloudfront.net, que AWS mantiene y renueva.
+          - CloudFrontDefaultCertificate: true
         Origins:
           - Id: site
             DomainName: !GetAtt SiteBucket.RegionalDomainName
             OriginAccessControlId: !Ref OriginAccessControl
             S3OriginConfig: {OriginAccessIdentity: ''}
+          # Sin dominio propio el ALB no puede tener certificado (no hay nombre
+          # que certificar), así que escucha en 80 y CloudFront le habla HTTP
+          # -- ver el parámetro OriginCertificateArn de infra/backend.yaml del
+          # repo del backend.
+          #
+          # OJO: en ese modo el salto CloudFront -> ALB va sin cifrar, y con él
+          # el header secreto X-Origin-Verify. El security group del ALB solo
+          # acepta la prefix list de CloudFront, así que nadie más llega, pero
+          # el tramo igual viaja en claro. Es aceptable para probar; para
+          # producción de verdad hay que cargar el certificado.
           - Id: api
-            DomainName: !Ref OriginDomainName
-            CustomOriginConfig:
-              OriginProtocolPolicy: https-only
-              HTTPSPort: 443
-              OriginSSLProtocols: [TLSv1.2]
+            DomainName: !If
+              - ConOrigenPropio
+              - !Ref OriginDomainName
+              - Fn::ImportValue: !Sub '${Project}-${Environment}-AlbDnsName'
+            CustomOriginConfig: !If
+              - ConOrigenPropio
+              - OriginProtocolPolicy: https-only
+                HTTPSPort: 443
+                OriginSSLProtocols: [TLSv1.2]
+              - OriginProtocolPolicy: http-only
+                HTTPPort: 80
             OriginCustomHeaders:
               - HeaderName: X-Origin-Verify
                 HeaderValue: !Sub '{{resolve:secretsmanager:${Project}/${Environment}/origin-verify:SecretString:value}}'

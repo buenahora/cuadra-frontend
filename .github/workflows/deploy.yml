@@ -42,9 +42,13 @@ jobs:
           faltan=()
           [[ -n "${{ secrets.AWS_DEPLOY_ROLE_ARN }}" ]] || faltan+=("secret AWS_DEPLOY_ROLE_ARN")
           [[ -n "${{ secrets.CFN_EXEC_ROLE_ARN }}" ]]   || faltan+=("secret CFN_EXEC_ROLE_ARN")
-          [[ -n "${{ vars.SITE_DOMAIN_NAME }}" ]]       || faltan+=("variable SITE_DOMAIN_NAME")
-          [[ -n "${{ vars.ORIGIN_DOMAIN_NAME }}" ]]     || faltan+=("variable ORIGIN_DOMAIN_NAME")
-          [[ -n "${{ vars.SITE_CERTIFICATE_ARN }}" ]]   || faltan+=("variable SITE_CERTIFICATE_ARN")
+          # Las tres de dominio son opcionales: sin ellas CloudFront sirve el
+          # sitio en su propio nombre (dxxxx.cloudfront.net) con el certificado
+          # que trae AWS. Ver infra/frontend.yaml. Avisar, no frenar.
+          if [[ -z "${{ vars.SITE_DOMAIN_NAME }}" ]]; then
+            echo '!! sin SITE_DOMAIN_NAME: el sitio queda en el dominio de CloudFront.'
+            echo '   El salto CloudFront -> ALB va sin TLS mientras no haya certificado.'
+          fi
           if (( ${#faltan[@]} )); then
             printf 'Falta configurar en este repo:\n'
             printf '  - %s\n' "${faltan[@]}"
@@ -80,9 +84,12 @@ jobs:
 
       - name: Build
         env:
-          # CloudFront manda /api/* al ALB del backend (ver infra/frontend.yaml),
-          # así que el frontend le pega al mismo dominio del sitio.
-          VITE_API_BASE_URL: https://${{ vars.SITE_DOMAIN_NAME }}/api
+          # Relativa a propósito: CloudFront sirve el sitio y manda /api/* al ALB
+          # del backend desde la misma distribución (ver infra/frontend.yaml),
+          # así que el navegador resuelve esto contra el origen de la página.
+          # Sirve igual con dominio propio o con el de CloudFront, y evita
+          # tener que conocer el nombre de la distribución antes de crearla.
+          VITE_API_BASE_URL: /api
           VITE_COGNITO_USER_POOL_ID: ${{ steps.backend.outputs.user_pool_id }}
           VITE_COGNITO_CLIENT_ID: ${{ steps.backend.outputs.user_pool_client_id }}
         run: npm run build
@@ -100,9 +107,9 @@ jobs:
             --parameter-overrides \
               Project="$PROJECT" \
               Environment="$ENVIRONMENT" \
-              SiteDomainName="${{ vars.SITE_DOMAIN_NAME }}" \
-              OriginDomainName="${{ vars.ORIGIN_DOMAIN_NAME }}" \
-              CertificateArn="${{ vars.SITE_CERTIFICATE_ARN }}"
+              ${{ vars.SITE_DOMAIN_NAME && format('SiteDomainName={0}', vars.SITE_DOMAIN_NAME) || '' }} \
+              ${{ vars.ORIGIN_DOMAIN_NAME && format('OriginDomainName={0}', vars.ORIGIN_DOMAIN_NAME) || '' }} \
+              ${{ vars.SITE_CERTIFICATE_ARN && format('CertificateArn={0}', vars.SITE_CERTIFICATE_ARN) || '' }}
 
       - name: Leer outputs del stack
         id: stack
