@@ -1,0 +1,130 @@
+# Deploy del frontend a AWS (stack alquileres-<env>-frontend).
+#
+# Pasos, en el orden del runbook (infra/README.md):
+#   1. lint + build, con UserPoolId/UserPoolClientId leídos del stack del backend
+#   2. cloudformation deploy de infra/frontend.yaml  <-- la infra siempre se aplica acá
+#   3. s3 sync del build al bucket del sitio + invalidación de CloudFront
+#
+# Autenticación: OIDC, sin claves. Necesita los secrets AWS_DEPLOY_ROLE_ARN y
+# CFN_EXEC_ROLE_ARN (outputs del stack base) y las variables de repo
+# SITE_DOMAIN_NAME, ORIGIN_DOMAIN_NAME y SITE_CERTIFICATE_ARN.
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Dos deploys en paralelo sobre el mismo stack se pisan: CloudFormation
+# rechaza el segundo y el s3 sync podría subir un build viejo.
+concurrency:
+  group: deploy-frontend
+  cancel-in-progress: false
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
+  PROJECT: ${{ vars.PROJECT || 'alquileres' }}
+  ENVIRONMENT: ${{ vars.ENVIRONMENT || 'prd' }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Chequear configuración del repo
+        run: |
+          set -euo pipefail
+          faltan=()
+          [[ -n "${{ secrets.AWS_DEPLOY_ROLE_ARN }}" ]] || faltan+=("secret AWS_DEPLOY_ROLE_ARN")
+          [[ -n "${{ secrets.CFN_EXEC_ROLE_ARN }}" ]]   || faltan+=("secret CFN_EXEC_ROLE_ARN")
+          [[ -n "${{ vars.SITE_DOMAIN_NAME }}" ]]       || faltan+=("variable SITE_DOMAIN_NAME")
+          [[ -n "${{ vars.ORIGIN_DOMAIN_NAME }}" ]]     || faltan+=("variable ORIGIN_DOMAIN_NAME")
+          [[ -n "${{ vars.SITE_CERTIFICATE_ARN }}" ]]   || faltan+=("variable SITE_CERTIFICATE_ARN")
+          if (( ${#faltan[@]} )); then
+            printf 'Falta configurar en este repo:\n'
+            printf '  - %s\n' "${faltan[@]}"
+            echo 'Ver infra/README.md.'
+            exit 1
+          fi
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      # El Cognito que usa el frontend lo crea el stack del backend. Se lee de
+      # sus outputs en vez de duplicarlo como variable del repo, así no queda
+      # desincronizado si el backend recrea el user pool.
+      - name: Leer Cognito del stack del backend
+        id: backend
+        run: |
+          set -euo pipefail
+          outs=$(aws cloudformation describe-stacks \
+            --stack-name "$PROJECT-$ENVIRONMENT-backend" \
+            --query 'Stacks[0].Outputs' --output json)
+          get() { echo "$outs" | jq -r --arg k "$1" '.[] | select(.OutputKey==$k) | .OutputValue'; }
+          echo "user_pool_id=$(get UserPoolId)"         >> "$GITHUB_OUTPUT"
+          echo "user_pool_client_id=$(get UserPoolClientId)" >> "$GITHUB_OUTPUT"
+
+      - name: Build
+        env:
+          # CloudFront manda /api/* al ALB del backend (ver infra/frontend.yaml),
+          # así que el frontend le pega al mismo dominio del sitio.
+          VITE_API_BASE_URL: https://${{ vars.SITE_DOMAIN_NAME }}/api
+          VITE_COGNITO_USER_POOL_ID: ${{ steps.backend.outputs.user_pool_id }}
+          VITE_COGNITO_CLIENT_ID: ${{ steps.backend.outputs.user_pool_client_id }}
+        run: npm run build
+
+      - name: CloudFormation deploy (frontend)
+        run: |
+          set -euo pipefail
+          aws cloudformation deploy \
+            --stack-name "$PROJECT-$ENVIRONMENT-frontend" \
+            --template-file infra/frontend.yaml \
+            --role-arn "${{ secrets.CFN_EXEC_ROLE_ARN }}" \
+            --capabilities CAPABILITY_IAM \
+            --no-fail-on-empty-changeset \
+            --tags Project="$PROJECT" Environment="$ENVIRONMENT" Repo=cuadra-frontend \
+            --parameter-overrides \
+              Project="$PROJECT" \
+              Environment="$ENVIRONMENT" \
+              SiteDomainName="${{ vars.SITE_DOMAIN_NAME }}" \
+              OriginDomainName="${{ vars.ORIGIN_DOMAIN_NAME }}" \
+              CertificateArn="${{ vars.SITE_CERTIFICATE_ARN }}"
+
+      - name: Leer outputs del stack
+        id: stack
+        run: |
+          set -euo pipefail
+          outs=$(aws cloudformation describe-stacks \
+            --stack-name "$PROJECT-$ENVIRONMENT-frontend" \
+            --query 'Stacks[0].Outputs' --output json)
+          get() { echo "$outs" | jq -r --arg k "$1" '.[] | select(.OutputKey==$k) | .OutputValue'; }
+          echo "bucket=$(get SiteBucketName)"       >> "$GITHUB_OUTPUT"
+          echo "distribution=$(get DistributionId)" >> "$GITHUB_OUTPUT"
+
+      - name: Publicar el build
+        run: |
+          set -euo pipefail
+          # Los assets con hash en el nombre se cachean fuerte; index.html no,
+          # porque es el que apunta a la versión nueva de los assets.
+          aws s3 sync dist/ "s3://${{ steps.stack.outputs.bucket }}" \
+            --delete --exclude index.html \
+            --cache-control 'public, max-age=31536000, immutable'
+          aws s3 cp dist/index.html "s3://${{ steps.stack.outputs.bucket }}/index.html" \
+            --cache-control 'no-cache'
+          aws cloudfront create-invalidation \
+            --distribution-id "${{ steps.stack.outputs.distribution }}" \
+            --paths /index.html

@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Analíticas · Cuadra</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&family=Spectral:wght@500;600&display=swap" rel="stylesheet" />
+<style>
+:root{--clay:#bd5d3a;--clay-deep:#a64e2f;--clay-tint:#efd9cd;--clay-wash:#f7ece4;--ink:#211f1c;--ink-2:#4a463f;--ink-soft:#6f6a60;--ink-faint:#9a9384;--paper:#f4f1ea;--surface:#fff;--surface-2:#faf8f3;--border:#e3ddcf;--border-2:#d7cfbe;--line:#ece6da;--below:#2f7d57;--below-tint:#e7f1ec;--in:#3f6ea3;--above:#c23b2e;--sans:'Space Grotesk',system-ui,sans-serif;--mono:'Space Mono',ui-monospace,monospace;--serif:'Spectral',Georgia,serif;--r:12px;--r-lg:16px;--r-xl:22px;--shadow-sm:0 1px 2px rgba(33,31,28,.06),0 2px 6px rgba(33,31,28,.05);--shadow:0 4px 14px rgba(33,31,28,.08),0 1px 3px rgba(33,31,28,.06)}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased}
+a{color:var(--clay);text-decoration:none}a:hover{color:var(--clay-deep)}
+.wrap{max-width:1240px;margin:0 auto;padding:44px 40px 80px;display:flex;flex-direction:column;gap:52px}
+.kicker{font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-faint)}
+.h1{font-weight:600;font-size:34px;line-height:1.06;letter-spacing:-.025em;margin:0}
+.h2{font-weight:600;font-size:19px;letter-spacing:-.015em;margin:0}
+.h3{font-weight:600;font-size:15px;margin:0}
+.helper{font-size:14px;color:var(--ink-faint);line-height:1.5;margin:0}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:26px 28px}
+.sechead{display:flex;align-items:flex-end;gap:22px;flex-wrap:wrap;margin-bottom:16px}
+.sechead .sub{font-size:15px;color:var(--ink-soft);padding-bottom:2px}
+.seg{display:flex;gap:2px;background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:3px}
+.seg button{font-family:var(--sans);font-weight:500;font-size:13.5px;color:var(--ink-soft);background:none;border:none;padding:8px 15px;border-radius:7px;cursor:pointer;transition:background .14s,color .14s}
+.seg button:hover{color:var(--ink)}
+.seg button.on{background:var(--surface);color:var(--clay);box-shadow:var(--shadow-sm)}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.kpi{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r);padding:18px 20px}
+.kpi.hi{background:var(--clay-wash);border-color:var(--clay-tint)}
+.kpi .k{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);display:block;margin-bottom:9px}
+.kpi.hi .k{color:var(--clay-deep);opacity:.75}
+.kpi .v{font-family:var(--serif);font-weight:600;font-size:31px;line-height:1;letter-spacing:-.01em}
+.kpi.hi .v{color:var(--clay-deep)}
+.kpi .n{font-size:13px;color:var(--ink-faint);margin-top:7px}
+.pill{display:inline-flex;align-items:center;gap:7px;font-family:var(--sans);font-weight:500;font-size:13.5px;padding:8px 14px;border-radius:99px;background:var(--below-tint);color:var(--below)}
+.pill .dot{width:7px;height:7px;border-radius:50%;background:currentColor}
+.btn{font-family:var(--sans);font-weight:500;font-size:14px;border:1px solid var(--clay);background:var(--clay);color:#fff;padding:11px 18px;border-radius:10px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;box-shadow:var(--shadow-sm);transition:background .14s}
+.btn:hover{background:var(--clay-deep)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.chartbox{display:flex;flex-direction:column;gap:4px}
+.chartbox .cap{font-size:13.5px;color:var(--ink-faint);line-height:1.45;margin:0 0 14px}
+svg{display:block;overflow:visible}
+.bx{cursor:pointer}
+.bx rect.hit{fill:transparent}
+.bx:hover .box{stroke:var(--ink-soft)}
+.rank{display:flex;flex-direction:column;gap:1px}
+.rankrow{display:grid;grid-template-columns:132px 1fr 92px;align-items:center;gap:14px;padding:9px 10px;border-radius:9px;cursor:pointer;transition:background .12s}
+.rankrow:hover{background:var(--surface-2)}
+.rankrow.on{background:var(--clay-wash)}
+.rankrow .nm{font-size:14px;font-weight:500;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rankrow.on .nm{color:var(--clay-deep);font-weight:600}
+.rankrow .track{height:9px;background:var(--line);border-radius:99px;overflow:hidden}
+.rankrow .fill{height:100%;background:var(--border-2);border-radius:99px;transition:width .4s cubic-bezier(.2,.7,.2,1)}
+.rankrow.on .fill{background:var(--clay)}
+.rankrow .val{font-family:var(--mono);font-size:13px;color:var(--ink-soft);text-align:right}
+.rankrow.on .val{color:var(--clay-deep);font-weight:700}
+.spread{display:flex;flex-direction:column;gap:9px}
+.spread .bar{height:10px;border-radius:99px;background:linear-gradient(90deg,var(--below-tint),var(--clay-tint));position:relative}
+.spread .knob{position:absolute;top:50%;width:17px;height:17px;border-radius:50%;background:var(--clay);border:3px solid var(--surface);box-shadow:var(--shadow);transform:translate(-50%,-50%);transition:left .4s cubic-bezier(.2,.7,.2,1)}
+.spread .ends{display:flex;justify-content:space-between;font-size:13px;color:var(--ink-faint)}
+.spread .ends b{color:var(--ink);font-weight:600}
+.divider{height:1px;background:var(--line);margin:24px 0}
+.tt{position:fixed;pointer-events:none;opacity:0;transition:opacity .12s;background:var(--ink);color:var(--paper);font-size:12.5px;line-height:1.5;padding:9px 12px;border-radius:9px;z-index:50;box-shadow:var(--shadow);white-space:nowrap}
+.tt b{font-family:var(--mono);font-weight:700;color:#fff}
+.tt .r{color:rgba(244,241,234,.6)}
+.axl{font-family:var(--mono);font-size:11.5px;fill:var(--ink-faint)}
+.bxl{font-size:13px;fill:var(--ink-soft)}
+.bxl.on{fill:var(--clay);font-weight:600}
+.mini{display:flex;gap:26px;flex-wrap:wrap}
+.mini div{display:flex;flex-direction:column;gap:5px}
+.mini .k{font-family:var(--mono);font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-faint)}
+.mini .v{font-size:16px;font-weight:600}
+.legend{display:flex;gap:20px;flex-wrap:wrap;align-items:center;padding-top:4px}
+.legend span{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-soft);white-space:nowrap}
+.legend b{color:var(--clay-deep);font-weight:600}
+.sw{width:13px;height:13px;border-radius:4px;flex:none}
+.sw-rest{background:#efe9dd;border:1px solid var(--border)}
+.sw-sel{background:var(--clay)}
+.sw-cum{width:16px;height:0;border-radius:0;border-top:2px dashed var(--in)}
+.histnotes{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:22px}
+.histnotes div{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px}
+.histnotes .k{font-family:var(--mono);font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-faint);display:block;margin-bottom:7px}
+.histnotes .v{font-size:15px;font-weight:500;color:var(--ink-2);line-height:1.45}
+.histnotes .v b{font-weight:700;color:var(--ink)}
+.hbar{transition:opacity .12s}
+.hbar:hover{opacity:.72}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <section>
+    <div class="sechead">
+      <div>
+        <div class="kicker" style="margin-bottom:10px">Montevideo en general</div>
+        <h1 class="h1">Montevideo, barrio por barrio</h1>
+      </div>
+      <div class="sub" id="genSub">Mediana de apartamentos de 1 dormitorio · datos de los últimos 90 días</div>
+      <div style="flex:1"></div>
+      <div class="seg" id="dormSeg">
+        <button data-d="1" class="on">1 dorm.</button>
+        <button data-d="2">2 dorm.</button>
+        <button data-d="3">3 dorm.</button>
+      </div>
+    </div>
+
+    <div class="kpis" style="margin-bottom:20px">
+      <div class="kpi"><span class="k">Mediana Montevideo</span><span class="v" id="gMed">—</span><div class="n" id="gMedN">—</div></div>
+      <div class="kpi"><span class="k">Avisos activos</span><span class="v" id="gAvisos">—</span><div class="n">en 10 barrios con datos</div></div>
+      <div class="kpi"><span class="k">Variación interanual</span><span class="v" id="gYoy">—</span><div class="n">promedio ponderado</div></div>
+      <div class="kpi"><span class="k">Brecha entre barrios</span><span class="v" id="gGap">—</span><div class="n" id="gGapN">—</div></div>
+    </div>
+
+    <div class="card">
+      <div class="chartbox">
+        <h2 class="h2">Rango de precios por barrio</h2>
+        <p class="cap">Caja = rango Q1–Q3 · línea = mediana · bigotes = mín–máx · pasá el mouse por una caja para ver el detalle, clickeá para elegirla</p>
+        <svg id="boxplot" viewBox="0 0 1120 340" width="100%"></svg>
+      </div>
+      <div class="divider"></div>
+      <div class="grid2">
+        <div class="chartbox">
+          <h3 class="h3" style="margin-bottom:4px">Ranking de medianas</h3>
+          <p class="cap">La barra compara contra el barrio más caro</p>
+          <div class="rank" id="rank"></div>
+        </div>
+        <div class="chartbox">
+          <h3 class="h3" style="margin-bottom:4px">Precio por metro cuadrado</h3>
+          <p class="cap">Cuánto cuesta el m² en cada barrio, de mayor a menor</p>
+          <div class="rank" id="rankM2"></div>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <div class="chartbox">
+        <div style="display:flex;align-items:flex-start;gap:20px;flex-wrap:wrap">
+          <div style="flex:1;min-width:260px">
+            <h3 class="h3" style="margin-bottom:4px">Cómo se reparte la oferta</h3>
+            <p class="cap" id="histCap">—</p>
+          </div>
+          <div class="legend">
+            <span><i class="sw sw-rest"></i>Resto de Montevideo</span>
+            <span><i class="sw sw-sel"></i><b id="legSel">—</b></span>
+            <span><i class="sw sw-cum"></i>Oferta acumulada</span>
+          </div>
+        </div>
+        <svg id="hist" viewBox="0 0 1120 330" width="100%" style="margin-top:8px"></svg>
+        <div class="histnotes" id="histNotes"></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="kicker" style="margin-bottom:12px">Barrio seleccionado</div>
+    <div class="card" style="padding:32px 34px">
+      <div style="display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin-bottom:24px">
+        <h2 class="h1" style="font-size:28px" id="bTitle">—</h2>
+        <div style="flex:1"></div>
+        <span class="pill" id="bYoy"><span class="dot"></span>—</span>
+        <button class="btn" id="bCta">Ver avisos</button>
+      </div>
+
+      <div class="kpis">
+        <div class="kpi hi"><span class="k">Mediana</span><span class="v" id="bMed">—</span></div>
+        <div class="kpi"><span class="k">Rango</span><span class="v" style="font-size:25px" id="bRange">—</span></div>
+        <div class="kpi"><span class="k">Avisos activos</span><span class="v" id="bAvisos">—</span></div>
+        <div class="kpi"><span class="k">Posición en Montevideo</span><span class="v" id="bRank">—</span><div class="n">de 10 barrios con datos</div></div>
+      </div>
+
+      <div class="spread" style="margin-top:22px">
+        <div class="bar"><div class="knob" id="bKnob" style="left:50%"></div></div>
+        <div class="ends"><span>mín <b id="bMin">—</b></span><span id="bMedLbl">mediana <b>—</b></span><span>máx <b id="bMax">—</b></span></div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="grid2">
+        <div class="chartbox">
+          <h3 class="h3" style="margin-bottom:4px">Evolución de la mediana · últimos 12 meses</h3>
+          <p class="cap" id="bTrendCap">—</p>
+          <svg id="trend" viewBox="0 0 520 230" width="100%"></svg>
+        </div>
+        <div class="chartbox">
+          <h3 class="h3" style="margin-bottom:4px">Contra el resto de Montevideo</h3>
+          <p class="cap">Dónde cae este barrio respecto a la mediana general</p>
+          <svg id="vsmvd" viewBox="0 0 520 230" width="100%"></svg>
+          <div class="mini" style="margin-top:18px">
+            <div><span class="k">Precio por m²</span><span class="v" id="bM2">—</span></div>
+            <div><span class="k">Superficie típica</span><span class="v" id="bSup">—</span></div>
+            <div><span class="k">Días en el mercado</span><span class="v" id="bDias">—</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="tt" id="tt"></div>
+
+<script>
+const B=[
+{n:'Punta Carretas',m:24400,q1:22800,q3:26000,lo:20300,hi:30700,a:38,y:7.2,m2:612,sup:41,d:24},
+{n:'Pocitos',m:22800,q1:20800,q3:24400,lo:16700,hi:28200,a:74,y:5.8,m2:571,sup:42,d:28},
+{n:'Carrasco',m:21500,q1:19800,q3:23600,lo:17200,hi:27500,a:22,y:8.1,m2:478,sup:47,d:41},
+{n:'Parque Rodó',m:20700,q1:19200,q3:21900,lo:15900,hi:23200,a:31,y:4.9,m2:539,sup:39,d:26},
+{n:'Buceo',m:19900,q1:18300,q3:22100,lo:15100,hi:26400,a:41,y:6.9,m2:498,sup:41,d:31},
+{n:'Cordón',m:19300,q1:18100,q3:21000,lo:13000,hi:25000,a:46,y:6.6,m2:502,sup:38,d:29},
+{n:'Malvín',m:18700,q1:17200,q3:20400,lo:14600,hi:23800,a:33,y:5.5,m2:452,sup:42,d:35},
+{n:'Centro',m:18200,q1:16400,q3:20100,lo:12500,hi:24000,a:88,y:3.4,m2:517,sup:36,d:22},
+{n:'La Blanqueada',m:17400,q1:16200,q3:18400,lo:14800,hi:21200,a:26,y:4.2,m2:428,sup:41,d:38},
+{n:'Tres Cruces',m:17000,q1:15300,q3:18600,lo:12600,hi:22000,a:29,y:5.1,m2:447,sup:39,d:33}];
+const DM={1:1,2:1.42,3:1.88},DA={1:1,2:.86,3:.44};
+let dorm=1,sel='Cordón';
+const f=v=>'$'+(Math.round(v/100)*100).toLocaleString('es-UY');
+const fk=v=>'$'+Math.round(v/1000)+'k';
+const data=()=>B.map(b=>({...b,m:b.m*DM[dorm],q1:b.q1*DM[dorm],q3:b.q3*DM[dorm],lo:b.lo*DM[dorm],hi:b.hi*DM[dorm],a:Math.round(b.a*DA[dorm]),m2:Math.round(b.m2*(dorm===1?1:dorm===2?.94:.88))}));
+const tt=document.getElementById('tt');
+function showTT(e,html){tt.innerHTML=html;tt.style.opacity=1;moveTT(e)}
+function moveTT(e){const r=tt.getBoundingClientRect();let x=e.clientX+14,y=e.clientY-r.height-10;if(x+r.width>innerWidth-8)x=e.clientX-r.width-14;if(y<8)y=e.clientY+16;tt.style.left=x+'px';tt.style.top=y+'px'}
+const hideTT=()=>tt.style.opacity=0;
+const NS='http://www.w3.org/2000/svg';
+function el(t,a){const n=document.createElementNS(NS,t);for(const k in a)n.setAttribute(k,a[k]);return n}
+
+function boxplot(){
+  const D=data(),s=document.getElementById('boxplot');s.innerHTML='';
+  const W=1120,H=340,pl=76,pr=10,pt=14,pb=48,iw=W-pl-pr,ih=H-pt-pb;
+  const lo=Math.min(...D.map(d=>d.lo)),hi=Math.max(...D.map(d=>d.hi));
+  const y0=Math.floor(lo/5000)*5000,y1=Math.ceil(hi/5000)*5000;
+  const Y=v=>pt+ih-(v-y0)/(y1-y0)*ih;
+  for(let v=y0;v<=y1;v+=5000){
+    s.appendChild(el('line',{x1:pl,x2:W-pr,y1:Y(v),y2:Y(v),stroke:'#ece6da','stroke-width':1}));
+    const t=el('text',{x:pl-12,y:Y(v)+4,'text-anchor':'end',class:'axl'});t.textContent=fk(v);s.appendChild(t);
+  }
+  const step=iw/D.length,bw=Math.min(44,step*.44);
+  D.forEach((d,i)=>{
+    const cx=pl+step*(i+.5),on=d.n===sel;
+    const g=el('g',{class:'bx'});
+    const col=on?'#bd5d3a':'#d7cfbe',fill=on?'#f7ece4':'#faf8f3',mid=on?'#a64e2f':'#4a463f';
+    g.appendChild(el('line',{x1:cx,x2:cx,y1:Y(d.hi),y2:Y(d.q3),stroke:col,'stroke-width':on?2:1.5}));
+    g.appendChild(el('line',{x1:cx,x2:cx,y1:Y(d.q1),y2:Y(d.lo),stroke:col,'stroke-width':on?2:1.5}));
+    g.appendChild(el('line',{x1:cx-bw*.3,x2:cx+bw*.3,y1:Y(d.hi),y2:Y(d.hi),stroke:col,'stroke-width':on?2:1.5}));
+    g.appendChild(el('line',{x1:cx-bw*.3,x2:cx+bw*.3,y1:Y(d.lo),y2:Y(d.lo),stroke:col,'stroke-width':on?2:1.5}));
+    g.appendChild(el('rect',{class:'box',x:cx-bw/2,y:Y(d.q3),width:bw,height:Math.max(3,Y(d.q1)-Y(d.q3)),rx:5,fill:fill,stroke:col,'stroke-width':on?2:1.5}));
+    g.appendChild(el('line',{x1:cx-bw/2,x2:cx+bw/2,y1:Y(d.m),y2:Y(d.m),stroke:mid,'stroke-width':on?3:2.5}));
+    const lb=el('text',{x:cx,y:H-pb+30,'text-anchor':'middle',class:'bxl'+(on?' on':'')});
+    lb.textContent=d.n.length>13?d.n.slice(0,11)+'…':d.n;g.appendChild(lb);
+    g.appendChild(el('rect',{class:'hit',x:cx-step/2,y:pt,width:step,height:ih+pb}));
+    g.addEventListener('mousemove',e=>showTT(e,'<b>'+d.n+'</b><br>mediana '+f(d.m)+'<br><span class="r">Q1–Q3 '+f(d.q1)+'–'+f(d.q3)+' · '+d.a+' avisos</span>'));
+    g.addEventListener('mouseleave',hideTT);
+    g.addEventListener('click',()=>{sel=d.n;render()});
+    s.appendChild(g);
+  });
+}
+
+function rank(){
+  const D=data(),mx=Math.max(...D.map(d=>d.m)),c=document.getElementById('rank');c.innerHTML='';
+  D.forEach(d=>{
+    const r=document.createElement('div');r.className='rankrow'+(d.n===sel?' on':'');
+    r.innerHTML='<span class="nm">'+d.n+'</span><div class="track"><div class="fill" style="width:'+(d.m/mx*100)+'%"></div></div><span class="val">'+f(d.m)+'</span>';
+    r.onclick=()=>{sel=d.n;render()};c.appendChild(r);
+  });
+}
+
+function rankM2(){
+  const D=[...data()].sort((a,b)=>b.m2-a.m2),mx=Math.max(...D.map(d=>d.m2)),c=document.getElementById('rankM2');c.innerHTML='';
+  D.forEach(d=>{
+    const r=document.createElement('div');r.className='rankrow'+(d.n===sel?' on':'');
+    r.innerHTML='<span class="nm">'+d.n+'</span><div class="track"><div class="fill" style="width:'+(d.m2/mx*100)+'%"></div></div><span class="val">$'+d.m2.toLocaleString('es-UY')+'</span>';
+    r.onclick=()=>{sel=d.n;render()};c.appendChild(r);
+  });
+}
+
+function spread(d,n){const pts=[];for(let i=0;i<n;i++){const t=(i+.5)/n;
+  let v;if(t<.25)v=d.lo+(d.q1-d.lo)*(t/.25);else if(t<.5)v=d.q1+(d.m-d.q1)*((t-.25)/.25);
+  else if(t<.75)v=d.m+(d.q3-d.m)*((t-.5)/.25);else v=d.q3+(d.hi-d.q3)*((t-.75)/.25);pts.push(v)}return pts}
+
+function hist(){
+  const D=data(),sd=D.find(x=>x.n===sel),s=document.getElementById('hist');s.innerHTML='';
+  const W=1120,H=330,pl=64,pr=64,pt=22,pb=54,iw=W-pl-pr,ih=H-pt-pb;
+  const lo=Math.min(...D.map(d=>d.lo)),hi=Math.max(...D.map(d=>d.hi));
+  const nb=12,bw=(hi-lo)/nb;
+  const bins=Array.from({length:nb},(_,i)=>({a:lo+bw*i,b:lo+bw*(i+1),c:0,sc:0}));
+  D.forEach(d=>{const pts=spread(d,24),w=d.a/pts.length;
+    pts.forEach(p=>{const k=Math.min(nb-1,Math.max(0,Math.floor((p-lo)/bw)));bins[k].c+=w;if(d.n===sel)bins[k].sc+=w})});
+  const tot=bins.reduce((a,b)=>a+b.c,0);let run=0;bins.forEach(b=>{run+=b.c;b.cum=run/tot});
+  const mx=Math.max(...bins.map(b=>b.c)),step=iw/nb;
+  const X=v=>pl+(v-lo)/(hi-lo)*iw,Y=c=>pt+ih-c/(mx*1.08)*ih;
+  for(let g=0;g<=4;g++){const yv=mx*1.08*g/4,y=Y(yv);
+    s.appendChild(el('line',{x1:pl,x2:W-pr,y1:y,y2:y,stroke:'#ece6da','stroke-width':1}));
+    const t=el('text',{x:pl-12,y:y+4,'text-anchor':'end',class:'axl'});t.textContent=Math.round(yv);s.appendChild(t)}
+  const yt=el('text',{x:pl-12,y:pt-8,'text-anchor':'end',class:'axl',style:'fill:#9a9384'});yt.textContent='avisos';s.appendChild(yt);
+  bins.forEach((b,i)=>{
+    const x=pl+step*i+step*.12,w=step*.76;
+    const ht=Math.max(2,pt+ih-Y(b.c)),hs=b.sc>0?Math.max(2,b.sc/(mx*1.08)*ih):0;
+    s.appendChild(el('rect',{class:'hbar',x:x,y:Y(b.c),width:w,height:ht,rx:5,fill:'#efe9dd',stroke:'#e3ddcf','stroke-width':1}));
+    if(hs>0)s.appendChild(el('rect',{class:'hbar',x:x,y:pt+ih-hs,width:w,height:hs,rx:5,fill:'#bd5d3a','fill-opacity':.9}));
+    const hit=el('rect',{x:pl+step*i,y:pt,width:step,height:ih,fill:'transparent'});hit.style.cursor='default';
+    hit.addEventListener('mousemove',e=>showTT(e,'<b>'+fk(b.a)+'–'+fk(b.b)+'</b><br>≈'+Math.round(b.c)+' avisos · '+Math.round(b.c/tot*100)+'% de la oferta'+(b.sc>0?'<br><span class="r">'+sel+': ≈'+Math.round(b.sc)+' avisos</span>':'')+'<br><span class="r">acumulado hasta acá: '+Math.round(b.cum*100)+'%</span>'));
+    hit.addEventListener('mouseleave',hideTT);s.appendChild(hit);
+    const t=el('text',{x:x+w/2,y:H-pb+24,'text-anchor':'middle',class:'axl'});t.textContent=fk(b.a);s.appendChild(t);
+  });
+  s.appendChild(el('line',{x1:pl,x2:W-pr,y1:pt+ih,y2:pt+ih,stroke:'#d7cfbe','stroke-width':1.5}));
+  const cd=bins.map((b,i)=>(i?'L':'M')+(pl+step*(i+.5))+' '+(pt+ih-b.cum*ih)).join(' ');
+  s.appendChild(el('path',{d:cd,fill:'none',stroke:'#3f6ea3','stroke-width':2,'stroke-dasharray':'5 4','stroke-linejoin':'round','opacity':.75}));
+  [.25,.5,.75,1].forEach(p=>{const y=pt+ih-p*ih;
+    const t=el('text',{x:W-pr+10,y:y+4,class:'axl',style:'fill:#3f6ea3'});t.textContent=p*100+'%';s.appendChild(t)});
+  const ct=el('text',{x:W-pr+10,y:pt-8,class:'axl',style:'fill:#3f6ea3'});ct.textContent='acum.';s.appendChild(ct);
+  const gm=D.reduce((a,b)=>a+b.m*b.a,0)/D.reduce((a,b)=>a+b.a,0);
+  [[gm,'#9a9384','mediana MVD '+fk(gm),-4],[sd.m,'#bd5d3a',sel+' '+fk(sd.m),14]].forEach(([v,c,lb,dy])=>{
+    s.appendChild(el('line',{x1:X(v),x2:X(v),y1:pt-2,y2:pt+ih,stroke:c,'stroke-width':1.8,'stroke-dasharray':'4 4'}));
+    const anch=X(v)>W-pr-140?'end':'start';
+    const t=el('text',{x:X(v)+(anch==='end'?-8:8),y:pt+10+dy,'text-anchor':anch,style:'font-family:var(--mono);font-size:11.5px;font-weight:700;fill:'+c});t.textContent=lb;s.appendChild(t)});
+  const pct=bins.filter(b=>b.b<=sd.m).reduce((a,b)=>a+b.c,0)/tot;
+  const peak=bins.reduce((a,b)=>b.c>a.c?b:a);
+  const cheap=bins.filter(b=>b.b<=gm).reduce((a,b)=>a+b.c,0)/tot;
+  document.getElementById('histCap').textContent='Avisos activos de '+dorm+' dorm. por franja de precio, toda Montevideo · '+Math.round(tot)+' avisos en 12 franjas de '+fk(bw);
+  document.getElementById('legSel').textContent=sel;
+  document.getElementById('histNotes').innerHTML=
+    '<div><span class="k">Franja más poblada</span><span class="v"><b>'+fk(peak.a)+'–'+fk(peak.b)+'</b> concentra el <b>'+Math.round(peak.c/tot*100)+'%</b> de la oferta</span></div>'+
+    '<div><span class="k">Posición de '+sel+'</span><span class="v">Su mediana deja <b>'+Math.round(pct*100)+'%</b> de la oferta por debajo</span></div>'+
+    '<div><span class="k">Mitad más accesible</span><span class="v"><b>'+Math.round(cheap*100)+'%</b> de los avisos está bajo la mediana general</span></div>';
+}
+
+function series(d){
+  const mo=['Sep','Oct','Nov','Dic','Ene','Feb','Mar','Abr','May','Jun','Jul','Ago'];
+  const start=d.m/(1+d.y/100);let seed=d.n.length*37+d.m%97;
+  return mo.map((k,i)=>{seed=(seed*1103515245+12345)%2147483648;const j=(seed/2147483648-.5)*d.m*.022;
+    const t=i/11,ease=t*t*(3-2*t);return{k,v:start+(d.m-start)*ease+(i===11?0:j)}});
+}
+
+function trend(){
+  const D=data(),d=D.find(x=>x.n===sel),S=series(d);
+  const s=document.getElementById('trend');s.innerHTML='';
+  const W=520,H=230,pl=44,pr=8,pt=14,pb=36,iw=W-pl-pr,ih=H-pt-pb;
+  const lo=Math.min(...S.map(p=>p.v)),hi=Math.max(...S.map(p=>p.v)),pad=(hi-lo)*.35||1;
+  const y0=lo-pad,y1=hi+pad,X=i=>pl+iw*i/11,Y=v=>pt+ih-(v-y0)/(y1-y0)*ih;
+  [0,.5,1].forEach(t=>s.appendChild(el('line',{x1:pl,x2:W-pr,y1:pt+ih*t,y2:pt+ih*t,stroke:'#ece6da','stroke-width':1})));
+  const dd=S.map((p,i)=>(i?'L':'M')+X(i)+' '+Y(p.v)).join(' ');
+  s.appendChild(el('path',{d:dd+' L'+X(11)+' '+(pt+ih)+' L'+X(0)+' '+(pt+ih)+' Z',fill:'#bd5d3a','fill-opacity':.08}));
+  s.appendChild(el('path',{d:dd,fill:'none',stroke:'#bd5d3a','stroke-width':2.4,'stroke-linejoin':'round'}));
+  S.forEach((p,i)=>{
+    if(i%2===0||i===11){const c=el('circle',{cx:X(i),cy:Y(p.v),r:4.2,fill:'#fff',stroke:'#bd5d3a','stroke-width':2.2});s.appendChild(c)}
+    const h=el('rect',{x:X(i)-iw/22,y:pt,width:iw/11,height:ih,fill:'transparent'});
+    h.addEventListener('mousemove',e=>showTT(e,'<b>'+p.k+'</b> · '+f(p.v)));
+    h.addEventListener('mouseleave',hideTT);s.appendChild(h);
+    if(i%2===0){const t=el('text',{x:X(i),y:H-pb+22,'text-anchor':'middle',class:'axl'});t.textContent=p.k;s.appendChild(t)}
+  });
+  [y1-pad*.6,y0+pad*.6].forEach(v=>{const t=el('text',{x:pl-10,y:Y(v)+4,'text-anchor':'end',class:'axl'});t.textContent=fk(v);s.appendChild(t)});
+  document.getElementById('bTrendCap').textContent='De '+f(S[0].v)+' en '+S[0].k+' a '+f(S[11].v)+' hoy';
+}
+
+function vsmvd(){
+  const D=data(),d=D.find(x=>x.n===sel);
+  const tot=D.reduce((a,b)=>a+b.a,0),gm=D.reduce((a,b)=>a+b.m*b.a,0)/tot;
+  const s=document.getElementById('vsmvd');s.innerHTML='';
+  const W=520,H=230,pl=8,pr=8,pt=26,pb=46,iw=W-pl-pr,ih=H-pt-pb;
+  const lo=Math.min(...D.map(x=>x.m)),hi=Math.max(...D.map(x=>x.m)),pad=(hi-lo)*.14;
+  const X=v=>pl+(v-(lo-pad))/((hi+pad)-(lo-pad))*iw,cy=pt+ih*.42;
+  s.appendChild(el('line',{x1:pl,x2:W-pr,y1:cy,y2:cy,stroke:'#ece6da','stroke-width':2}));
+  D.forEach(x=>{const on=x.n===sel;
+    const c=el('circle',{cx:X(x.m),cy:cy,r:on?9:5.5,fill:on?'#bd5d3a':'#e3ddcf',stroke:on?'#fff':'none','stroke-width':on?2.5:0});
+    c.style.cursor='pointer';
+    c.addEventListener('mousemove',e=>showTT(e,'<b>'+x.n+'</b> · '+f(x.m)));
+    c.addEventListener('mouseleave',hideTT);c.addEventListener('click',()=>{sel=x.n;render()});s.appendChild(c)});
+  s.appendChild(el('line',{x1:X(gm),x2:X(gm),y1:cy-34,y2:cy+34,stroke:'#9a9384','stroke-width':1.5,'stroke-dasharray':'4 4'}));
+  const gl=el('text',{x:X(gm),y:cy-42,'text-anchor':'middle',class:'axl'});gl.textContent='mediana MVD '+fk(gm);s.appendChild(gl);
+  const diff=(d.m-gm)/gm*100,pos=diff>=0;
+  const t1=el('text',{x:X(d.m),y:cy+44,'text-anchor':'middle',style:'font-family:var(--sans);font-size:14px;font-weight:600;fill:'+(pos?'#c23b2e':'#2f7d57')});
+  t1.textContent=(pos?'+':'')+diff.toFixed(1)+'% vs. Montevideo';s.appendChild(t1);
+  const t2=el('text',{x:X(d.m),y:cy+64,'text-anchor':'middle',class:'axl'});t2.textContent=d.n;s.appendChild(t2);
+}
+
+function render(){
+  const D=data(),d=D.find(x=>x.n===sel),i=D.findIndex(x=>x.n===sel);
+  const tot=D.reduce((a,b)=>a+b.a,0),gm=D.reduce((a,b)=>a+b.m*b.a,0)/tot;
+  const gy=D.reduce((a,b)=>a+b.y*b.a,0)/tot,mx=Math.max(...D.map(x=>x.m)),mn=Math.min(...D.map(x=>x.m));
+  document.getElementById('genSub').textContent='Mediana de apartamentos de '+dorm+' dormitorio'+(dorm>1?'s':'')+' · datos de los últimos 90 días';
+  document.getElementById('gMed').textContent=f(gm);
+  document.getElementById('gMedN').textContent='apartamentos de '+dorm+' dorm. · '+dorm*30+' m² a '+(dorm*30+22)+' m²';
+  document.getElementById('gAvisos').textContent=tot.toLocaleString('es-UY');
+  document.getElementById('gYoy').textContent='+'+gy.toFixed(1)+'%';
+  document.getElementById('gGap').textContent=(mx/mn).toFixed(2)+'×';
+  document.getElementById('gGapN').textContent=D[0].n+' vs. '+D[D.length-1].n;
+  document.getElementById('bTitle').textContent='Apartamentos de '+dorm+' dormitorio'+(dorm>1?'s':'')+' en '+d.n;
+  document.getElementById('bYoy').innerHTML='<span class="dot"></span>+'+d.y.toFixed(1)+'% interanual';
+  document.getElementById('bCta').textContent='Ver avisos en '+d.n;
+  document.getElementById('bMed').textContent=f(d.m);
+  document.getElementById('bRange').textContent=f(d.lo)+' – '+f(d.hi);
+  document.getElementById('bAvisos').textContent=d.a;
+  document.getElementById('bRank').textContent='#'+(i+1);
+  document.getElementById('bMin').textContent=f(d.lo);
+  document.getElementById('bMax').textContent=f(d.hi);
+  document.getElementById('bMedLbl').innerHTML='mediana <b>'+f(d.m)+'</b>';
+  document.getElementById('bKnob').style.left=((d.m-d.lo)/(d.hi-d.lo)*100)+'%';
+  document.getElementById('bM2').textContent='$'+d.m2.toLocaleString('es-UY')+'/m²';
+  document.getElementById('bSup').textContent=Math.round(d.sup*(dorm===1?1:dorm===2?1.5:2.05))+' m² típicos';
+  document.getElementById('bDias').textContent=d.d+' días promedio';
+  boxplot();rank();rankM2();hist();trend();vsmvd();
+}
+document.getElementById('dormSeg').addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  [...e.currentTarget.children].forEach(x=>x.classList.toggle('on',x===b));
+  dorm=+b.dataset.d;render();
+});
+render();
+</script>
+</body>
+</html>

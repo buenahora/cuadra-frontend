@@ -1,0 +1,34 @@
+# CI del frontend: lo que corre en cada PR y en cada rama que no sea main.
+# No toca AWS (no asume ningún rol): solo build, lint y validación de los
+# templates de CloudFormation. El deploy real está en deploy.yml.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches-ignore: [main]
+
+jobs:
+  app:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      # Build con el valor por defecto de VITE_API_BASE_URL: acá solo
+      # interesa que compile, no a qué API apunta.
+      - run: npm run build
+
+  infra:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install cfn-lint
+      - run: cfn-lint infra/frontend.yaml
