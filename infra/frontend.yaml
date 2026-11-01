@@ -119,6 +119,33 @@ Resources:
           return request;
         }
 
+  # CloudFront le manda al ALB la ruta completa (/api/zones), pero la app no
+  # sirve ese prefijo: --root-path solo le dice a FastAPI bajo qué prefijo está
+  # montada para generar links y docs correctos, no agrega prefijo de ruteo --
+  # sacarlo es trabajo del proxy. Sin esto /api/health da 404 aunque /health
+  # responda 200, y la API entera queda inalcanzable desde el sitio.
+  #
+  # Con substring y no con regex: así no depende de qué soporta el runtime de
+  # CloudFront Functions.
+  ApiRewriteFunction:
+    Type: AWS::CloudFront::Function
+    Properties:
+      Name: !Sub '${Project}-${Environment}-api-rewrite'
+      AutoPublish: true
+      FunctionConfig:
+        Comment: Saca el prefijo /api antes de mandar el request al ALB
+        Runtime: cloudfront-js-2.0
+      FunctionCode: |
+        function handler(event) {
+          var request = event.request;
+          if (request.uri === '/api' || request.uri === '/api/') {
+            request.uri = '/';
+          } else if (request.uri.indexOf('/api/') === 0) {
+            request.uri = request.uri.substring(4);
+          }
+          return request;
+        }
+
   Distribution:
     Type: AWS::CloudFront::Distribution
     # W1030: cfn-lint resuelve Ref CertificateArn con su default ('') y se
@@ -193,6 +220,9 @@ Resources:
             Compress: true
             CachePolicyId: !Ref ApiCachePolicy
             OriginRequestPolicyId: b689b0a8-53d0-40ab-baf2-68738e2966ac # Managed-AllViewerExceptHostHeader
+            FunctionAssociations:
+              - EventType: viewer-request
+                FunctionARN: !GetAtt ApiRewriteFunction.FunctionMetadata.FunctionARN
 
 Outputs:
   SiteBucketName:
