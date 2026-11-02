@@ -8,6 +8,8 @@
 # Autenticación: OIDC, sin claves. Necesita los secrets AWS_DEPLOY_ROLE_ARN y
 # CFN_EXEC_ROLE_ARN (outputs del stack base) y las variables de repo
 # SITE_DOMAIN_NAME, ORIGIN_DOMAIN_NAME y SITE_CERTIFICATE_ARN.
+#
+# Además, el secret VITE_CARTO_API_KEY para los tiles del mapa.
 name: Deploy
 
 on:
@@ -45,6 +47,10 @@ jobs:
           # Las tres de dominio son opcionales: sin ellas CloudFront sirve el
           # sitio en su propio nombre (dxxxx.cloudfront.net) con el certificado
           # que trae AWS. Ver infra/frontend.yaml. Avisar, no frenar.
+          if [[ -z "${{ secrets.VITE_CARTO_API_KEY }}" ]]; then
+            echo '!! sin VITE_CARTO_API_KEY: los mapas van a mostrar el cartel'
+            echo '   "API KEY REQUIRED" de CARTO. Ver .env.example.'
+          fi
           if [[ -z "${{ vars.SITE_DOMAIN_NAME }}" ]]; then
             echo '!! sin SITE_DOMAIN_NAME: el sitio queda en el dominio de CloudFront.'
             echo '   El salto CloudFront -> ALB va sin TLS mientras no haya certificado.'
@@ -92,6 +98,10 @@ jobs:
           VITE_API_BASE_URL: /api
           VITE_COGNITO_USER_POOL_ID: ${{ steps.backend.outputs.user_pool_id }}
           VITE_COGNITO_CLIENT_ID: ${{ steps.backend.outputs.user_pool_client_id }}
+          # Tiles del mapa base. CARTO responde 200 sin key, pero manda una
+          # imagen que dice "API KEY REQUIRED": si falta, el mapa se ve roto y
+          # el deploy pasa igual, por eso se chequea arriba.
+          VITE_CARTO_API_KEY: ${{ secrets.VITE_CARTO_API_KEY }}
         run: npm run build
 
       - name: CloudFormation deploy (frontend)

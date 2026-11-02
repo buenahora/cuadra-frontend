@@ -1,3 +1,5 @@
+import { tileUrl } from '../../lib/basemap';
+
 const MAP_AREAS = {
   centro:  { z: 14, cx: 5636, cy: 9888 },
   pocitos: { z: 14, cx: 5637, cy: 9890 },
@@ -18,7 +20,7 @@ function MapTiles({ area = 'centro' }) {
     }}>
       {tiles.map(([x, y]) => (
         <img key={x + '-' + y} alt="" width="256" height="256" loading="lazy" crossOrigin="anonymous"
-          src={`https://a.basemaps.cartocdn.com/light_all/${z}/${x}/${y}.png`}
+          src={tileUrl(z, x, y)}
           style={{ display: 'block', width: 256, height: 256 }} />
       ))}
     </div>

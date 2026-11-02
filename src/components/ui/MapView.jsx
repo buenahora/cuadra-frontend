@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { destinationPoint, haversineMeters } from '../../lib/geo';
+import { TILE_URL_TEMPLATE, TILE_SUBDOMAINS } from '../../lib/basemap';
 
 // Un "line" de scroll ~= 16px; Firefox reporta deltaMode 1 en vez de píxeles.
 const LINE_HEIGHT_PX = 16;
@@ -150,8 +151,8 @@ export function MapView({
       keyboard: interactive,
     });
 
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-      subdomains: 'abcd',
+    L.tileLayer(TILE_URL_TEMPLATE, {
+      subdomains: TILE_SUBDOMAINS,
       maxZoom: 20,
     }).addTo(map);
 

@@ -11,6 +11,7 @@ las pantallas de auth.
 ```bash
 npm install
 cp .env.example .env     # VITE_API_BASE_URL -> backend local en :8000
+                         # VITE_CARTO_API_KEY -> tiles del mapa (sin ella dicen "API KEY REQUIRED")
 npm run dev              # http://localhost:5173
 ```
 
