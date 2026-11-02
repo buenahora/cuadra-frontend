@@ -4,7 +4,7 @@ import { AuthShell } from './AuthShell';
 import { Field } from '../../components/ui/Field';
 import { Btn } from '../../components/ui/Btn';
 import { Ic } from '../../components/ui/Ic';
-import { login } from '../../api/auth';
+import { login, entrarConGoogle, entrarConCognito, usaCognito } from '../../api/auth';
 import { ApiError } from '../../api/client';
 
 function OrDiv() {
@@ -21,6 +21,21 @@ export function SLA() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  // Con el pool configurado la API no acepta contraseñas (responde 404):
+  // mostrar el formulario sería ofrecer algo que no puede funcionar.
+  const porCognito = usaCognito();
+
+  const salirAlHostedUI = (ir) => async () => {
+    if (submitting) return;
+    setError(null);
+    setSubmitting(true);
+    try {
+      await ir();  // navega fuera del sitio; lo de abajo solo corre si falla
+    } catch {
+      setError('No pudimos abrir el inicio de sesión. Probá de nuevo.');
+      setSubmitting(false);
+    }
+  };
 
   const submit = async () => {
     if (submitting) return;
@@ -51,32 +66,56 @@ export function SLA() {
         Ingresá con tu cuenta de Cuadra para enviar tu consulta.
       </p>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <Field label="Email" placeholder="tu@correo.com" icon="mail" value={email} onChange={setEmail} />
-        <div>
-          <Field label="Contraseña" placeholder="••••••••" icon="lock" type="password" value={password} onChange={setPassword} />
-          <a className="authlink" style={{ display: 'inline-block', fontSize: 13, marginTop: 6 }}>
-            ¿Olvidaste tu contraseña?
-          </a>
-        </div>
-      </div>
+      {!porCognito && (
+        <>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <Field label="Email" placeholder="tu@correo.com" icon="mail" value={email} onChange={setEmail} />
+            <div>
+              <Field label="Contraseña" placeholder="••••••••" icon="lock" type="password" value={password} onChange={setPassword} />
+              <a className="authlink" style={{ display: 'inline-block', fontSize: 13, marginTop: 6 }}>
+                ¿Olvidaste tu contraseña?
+              </a>
+            </div>
+          </div>
 
-      {error && <p className="err-msg" style={{ marginTop: 12 }}>{error}</p>}
+          {error && <p className="err-msg" style={{ marginTop: 12 }}>{error}</p>}
 
-      <Btn variant="primary" block iconR="arrow" disabled={submitting} onClick={submit} style={{ marginTop: 22 }}>
-        {submitting ? 'Ingresando…' : 'Iniciar sesión'}
-      </Btn>
+          <Btn variant="primary" block iconR="arrow" disabled={submitting} onClick={submit} style={{ marginTop: 22 }}>
+            {submitting ? 'Ingresando…' : 'Iniciar sesión'}
+          </Btn>
 
-      <OrDiv />
-      <button className="btn btn--block" style={{ gap: 10 }} disabled>
+          <OrDiv />
+        </>
+      )}
+
+      {porCognito && error && <p className="err-msg" style={{ marginTop: 12 }}>{error}</p>}
+
+      <button
+        className="btn btn--block"
+        style={{ gap: 10, marginTop: porCognito ? 22 : 0 }}
+        disabled={!porCognito || submitting}
+        onClick={salirAlHostedUI(entrarConGoogle)}
+      >
         <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 20, height: 20, borderRadius: '50%', background: 'var(--ink)', color: '#fff', fontFamily: 'var(--sans)', fontWeight: 700, fontSize: 13, flex: 'none' }}>G</span>
-        Continuar con Google
+        {submitting ? 'Abriendo…' : 'Continuar con Google'}
       </button>
 
-      <p className="authswap">
-        ¿No tenés cuenta?{' '}
-        <a className="authlink" onClick={() => go('LB', params)}>Creá una</a>
-      </p>
+      {porCognito && (
+        <>
+          <OrDiv />
+          <Btn variant="primary" block iconR="arrow" disabled={submitting}
+               onClick={salirAlHostedUI(entrarConCognito)}>
+            Entrar con email
+          </Btn>
+        </>
+      )}
+
+      {!porCognito && (
+        <p className="authswap">
+          ¿No tenés cuenta?{' '}
+          <a className="authlink" onClick={() => go('LB', params)}>Creá una</a>
+        </p>
+      )}
     </AuthShell>
   );
 }

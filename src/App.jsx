@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { procesarCallback } from './lib/cognito';
 import './screens/index.js';
 import { SCREENS } from './data/screens';
 import { NavCtx } from './context/NavContext';
@@ -22,6 +23,15 @@ export default function App() {
     const s = SCREENS[route];
     document.title = s ? `${s.title} · Cuadra` : 'Cuadra';
   }, [route]);
+
+  // La vuelta del hosted UI cae en la raíz con ?code=... en la query, que el
+  // router por hash no mira. Se canjea una sola vez al arrancar; si no era
+  // una vuelta de login, procesarCallback() no hace nada.
+  useEffect(() => {
+    procesarCallback()
+      .then((hubo) => { if (hubo) setToastMsg('Sesión iniciada'); })
+      .catch((err) => setToastMsg(err.message || 'No se pudo completar el inicio de sesión'));
+  }, []);
 
   useEffect(() => {
     const onHash = () => {

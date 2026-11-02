@@ -1,4 +1,5 @@
 import { getToken } from '../lib/token';
+import { renovarSiHaceFalta } from '../lib/cognito';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
 
@@ -24,14 +25,17 @@ function buildQuery(params = {}) {
   return s ? `?${s}` : '';
 }
 
-function authHeaders() {
+/* Async porque el ID token de Cognito dura una hora y hay que renovarlo
+ * antes de usarlo. Sin pool configurado, renovarSiHaceFalta() no hace nada. */
+async function authHeaders() {
+  await renovarSiHaceFalta();
   const token = getToken();
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
 export async function apiGet(path, params) {
   const res = await fetch(`${API_BASE}${path}${buildQuery(params)}`, {
-    headers: authHeaders(),
+    headers: await authHeaders(),
   });
   if (!res.ok) throw new ApiError(res.status, await res.text().catch(() => null));
   return res.json();
@@ -40,7 +44,7 @@ export async function apiGet(path, params) {
 export async function apiPost(path, body) {
   const res = await fetch(`${API_BASE}${path}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
     body: JSON.stringify(body),
   });
   if (!res.ok) throw new ApiError(res.status, await res.text().catch(() => null));
@@ -51,7 +55,7 @@ export async function apiPost(path, body) {
 export async function apiDelete(path) {
   const res = await fetch(`${API_BASE}${path}`, {
     method: 'DELETE',
-    headers: authHeaders(),
+    headers: await authHeaders(),
   });
   if (!res.ok) throw new ApiError(res.status, await res.text().catch(() => null));
   return null;

@@ -87,6 +87,7 @@ jobs:
           get() { echo "$outs" | jq -r --arg k "$1" '.[] | select(.OutputKey==$k) | .OutputValue'; }
           echo "user_pool_id=$(get UserPoolId)"         >> "$GITHUB_OUTPUT"
           echo "user_pool_client_id=$(get UserPoolClientId)" >> "$GITHUB_OUTPUT"
+          echo "auth_domain=$(get AuthDomain)"             >> "$GITHUB_OUTPUT"
 
       - name: Build
         env:
@@ -98,6 +99,11 @@ jobs:
           VITE_API_BASE_URL: /api
           VITE_COGNITO_USER_POOL_ID: ${{ steps.backend.outputs.user_pool_id }}
           VITE_COGNITO_CLIENT_ID: ${{ steps.backend.outputs.user_pool_client_id }}
+          # Con el dominio cargado el frontend manda el login al hosted UI en
+          # vez del formulario propio. Se deja vacío hasta que el pool tenga
+          # el proveedor de Google y el backend esté con EnableCognitoAuth en
+          # true, para no mandar gente a una pantalla que todavía no sirve.
+          VITE_COGNITO_DOMAIN: ${{ vars.ENABLE_COGNITO_AUTH == 'true' && steps.backend.outputs.auth_domain || '' }}
           # Tiles del mapa base. CARTO responde 200 sin key, pero manda una
           # imagen que dice "API KEY REQUIRED": si falta, el mapa se ve roto y
           # el deploy pasa igual, por eso se chequea arriba.

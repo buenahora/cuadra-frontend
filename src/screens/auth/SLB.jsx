@@ -5,7 +5,7 @@ import { Field } from '../../components/ui/Field';
 import { Btn } from '../../components/ui/Btn';
 import { Ic } from '../../components/ui/Ic';
 import { Check } from '../../components/ui/Controls';
-import { register } from '../../api/auth';
+import { register, entrarConGoogle, entrarConCognito, usaCognito } from '../../api/auth';
 import { ApiError } from '../../api/client';
 
 function OrDiv() {
@@ -26,6 +26,21 @@ export function SLB() {
   const [accepted, setAccepted] = useState(true);
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  // Con el pool configurado el alta la hace Cognito: la API rechaza
+  // /auth/register con 404 y el formulario de acá no tendría a dónde ir.
+  const porCognito = usaCognito();
+
+  const salirAlHostedUI = (ir) => async () => {
+    if (submitting) return;
+    setError(null);
+    setSubmitting(true);
+    try {
+      await ir();  // navega fuera del sitio
+    } catch {
+      setError('No pudimos abrir el registro. Probá de nuevo.');
+      setSubmitting(false);
+    }
+  };
 
   const submit = async () => {
     if (submitting) return;
@@ -64,6 +79,7 @@ export function SLB() {
         Toma menos de un minuto y podés seguir con tu consulta.
       </p>
 
+      {!porCognito && (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         <Field label="Nombre completo" placeholder="Tu nombre" icon="user" value={nombre} onChange={setNombre} />
         <Field label="Email" placeholder="tu@correo.com" icon="mail" value={email} onChange={setEmail} />
@@ -82,29 +98,54 @@ export function SLB() {
           error={password2 && password !== password2 ? 'Las contraseñas no coinciden.' : undefined}
         />
       </div>
+      )}
 
-      <div style={{ marginTop: 12 }}>
-        <Check checked={accepted} onChange={setAccepted}>
-          <span style={{ fontSize: 13.5 }}>Acepto los términos y la política de privacidad</span>
-        </Check>
-      </div>
+      {!porCognito && (
+        <>
+          <div style={{ marginTop: 12 }}>
+            <Check checked={accepted} onChange={setAccepted}>
+              <span style={{ fontSize: 13.5 }}>Acepto los términos y la política de privacidad</span>
+            </Check>
+          </div>
 
-      {error && <p className="err-msg" style={{ marginTop: 12 }}>{error}</p>}
+          {error && <p className="err-msg" style={{ marginTop: 12 }}>{error}</p>}
 
-      <Btn variant="primary" block iconR="arrow" disabled={submitting} onClick={submit} style={{ marginTop: 14 }}>
-        {submitting ? 'Creando cuenta…' : 'Crear cuenta'}
-      </Btn>
+          <Btn variant="primary" block iconR="arrow" disabled={submitting} onClick={submit} style={{ marginTop: 14 }}>
+            {submitting ? 'Creando cuenta…' : 'Crear cuenta'}
+          </Btn>
 
-      <OrDiv />
-      <button className="btn btn--block" style={{ gap: 10 }} disabled>
+          <OrDiv />
+        </>
+      )}
+
+      {porCognito && error && <p className="err-msg" style={{ marginTop: 12 }}>{error}</p>}
+
+      <button
+        className="btn btn--block"
+        style={{ gap: 10, marginTop: porCognito ? 14 : 0 }}
+        disabled={!porCognito || submitting}
+        onClick={salirAlHostedUI(entrarConGoogle)}
+      >
         <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 20, height: 20, borderRadius: '50%', background: 'var(--ink)', color: '#fff', fontFamily: 'var(--sans)', fontWeight: 700, fontSize: 13, flex: 'none' }}>G</span>
-        Continuar con Google
+        {submitting ? 'Abriendo…' : 'Continuar con Google'}
       </button>
 
-      <p className="authswap">
-        ¿Ya tenés cuenta?{' '}
-        <a className="authlink" onClick={() => go('LA', params)}>Iniciá sesión</a>
-      </p>
+      {porCognito && (
+        <>
+          <OrDiv />
+          <Btn variant="primary" block iconR="arrow" disabled={submitting}
+               onClick={salirAlHostedUI(entrarConCognito)}>
+            Crear cuenta con email
+          </Btn>
+        </>
+      )}
+
+      {!porCognito && (
+        <p className="authswap">
+          ¿Ya tenés cuenta?{' '}
+          <a className="authlink" onClick={() => go('LA', params)}>Iniciá sesión</a>
+        </p>
+      )}
     </AuthShell>
   );
 }
