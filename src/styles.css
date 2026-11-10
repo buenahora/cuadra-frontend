@@ -90,6 +90,14 @@ html, body, #root {
 .avatar { width: 38px; height: 38px; border-radius: 50%; background: var(--clay-tint); color: var(--clay-deep);
   display: inline-flex; align-items: center; justify-content: center; font-family: var(--sans); font-weight: 600; font-size: 15px;
   cursor: pointer; flex: none; }
+.profile { position: relative; flex: none; }
+.profile .avatar { border: none; padding: 0; }
+.profile-menu { position: absolute; top: calc(100% + 8px); right: 0; min-width: 170px; padding: 6px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); box-shadow: var(--shadow); }
+.profile-menu button { display: block; width: 100%; padding: 9px 12px; border: none; border-radius: var(--r-sm);
+  background: none; color: var(--ink); font-family: var(--sans); font-size: 14px; font-weight: 500; text-align: left;
+  cursor: pointer; white-space: nowrap; transition: background .14s; }
+.profile-menu button:hover { background: var(--surface-2); }
 
 .body  { flex: 1; display: flex; min-height: 0; }
 .pad   { padding: 28px; }

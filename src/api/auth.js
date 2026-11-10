@@ -41,4 +41,6 @@ export function logout() {
     return;
   }
   clearToken();
+  // Sin Cognito nadie redirige: se recarga en el inicio para que la barra se entere.
+  window.location.assign('/');
 }

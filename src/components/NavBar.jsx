@@ -1,8 +1,51 @@
+import { useEffect, useRef, useState } from 'react';
 import { useNav } from '../context/NavContext';
 import { Mark } from './ui/Mark';
 import { Btn } from './ui/Btn';
-import { isAuthenticated } from '../api/auth';
+import { isAuthenticated, logout } from '../api/auth';
 import { useFavorites } from '../lib/favorites';
+
+function ProfileMenu() {
+  const [abierto, setAbierto] = useState(false);
+  const raizRef = useRef(null);
+
+  // Los listeners solo existen con el menú abierto: la barra está en todas las pantallas.
+  useEffect(() => {
+    if (!abierto) return undefined;
+    const alTocar = (e) => {
+      if (!raizRef.current?.contains(e.target)) setAbierto(false);
+    };
+    const alTeclear = (e) => {
+      if (e.key === 'Escape') setAbierto(false);
+    };
+    document.addEventListener('pointerdown', alTocar);
+    document.addEventListener('keydown', alTeclear);
+    return () => {
+      document.removeEventListener('pointerdown', alTocar);
+      document.removeEventListener('keydown', alTeclear);
+    };
+  }, [abierto]);
+
+  return (
+    <div className="profile" ref={raizRef}>
+      <button
+        type="button"
+        className="avatar"
+        title="Perfil"
+        aria-haspopup="menu"
+        aria-expanded={abierto}
+        onClick={() => setAbierto((v) => !v)}
+      >
+        M
+      </button>
+      {abierto && (
+        <div className="profile-menu" role="menu">
+          <button type="button" role="menuitem" onClick={() => logout()}>Cerrar sesión</button>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function NavBar({ active }) {
   const { go } = useNav();
@@ -35,7 +78,7 @@ export function NavBar({ active }) {
       )}
       <div className="spacer" />
       {authenticated
-        ? <div className="avatar" title="Perfil" onClick={() => go('2F')}>M</div>
+        ? <ProfileMenu />
         : (
           <div style={{ display: 'flex', gap: 10 }}>
             <Btn sm onClick={() => go('LA')}>Iniciar sesión</Btn>
