@@ -111,7 +111,7 @@ html, body, #root {
   transition: background .14s, border-color .14s, box-shadow .14s, transform .05s; white-space: nowrap; }
 .btn:hover { background: var(--surface-2); border-color: var(--ink-faint); }
 .btn:active { transform: translateY(1px); }
-.btn--primary { background: var(--clay); border-color: var(--clay); color: #fff; box-shadow: var(--shadow-sm); }
+.btn--primary { background: #2f7d57; border-color: var(--clay); color: #fff; box-shadow: var(--shadow-sm); }
 .btn--primary:hover { background: var(--clay-deep); border-color: var(--clay-deep); }
 .btn--dark { background: var(--ink); border-color: var(--ink); color: var(--paper); }
 .btn--dark:hover { background: #000; }
